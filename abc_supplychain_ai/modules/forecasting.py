@@ -24,10 +24,27 @@ def render(df):
     data = df.groupby('date').agg({'quantity': 'sum'}).reset_index()
     data = data.rename(columns={"date": "ds", "quantity": "y"})
 
+    # --- User selects forecast range ---
+    st.markdown("**Select forecast range:**")
+    min_date = data['ds'].min()
+    max_date = data['ds'].max()
+    default_start = max_date + pd.Timedelta(days=1)
+    start_date = st.date_input(
+        "Start date for forecast", value=default_start, min_value=min_date, max_value=max_date + pd.Timedelta(days=365))
+    horizon = st.number_input(
+        "Number of days to forecast (horizon)", min_value=1, max_value=365, value=30)
+    custom_range = st.checkbox("Or select custom date range")
+    if custom_range:
+        range_start = st.date_input(
+            "Custom range start date", value=default_start, min_value=min_date, max_value=max_date + pd.Timedelta(days=365), key="range_start")
+        range_end = st.date_input(
+            "Custom range end date", value=default_start + pd.Timedelta(days=horizon-1),
+              min_value=range_start, max_value=max_date + pd.Timedelta(days=365), key="range_end")
+
     # Train Prophet model
     model = Prophet()
     model.fit(data)
-    future = model.make_future_dataframe(periods=30)
+    future = model.make_future_dataframe(periods=365)
     forecast = model.predict(future)
 
     # Evaluate the model on training data
@@ -49,9 +66,24 @@ def render(df):
     fig2 = px.area(forecast, x='ds', y=['yhat_lower', 'yhat_upper'], title='Forecast Confidence Interval')
     st.plotly_chart(fig2, use_container_width=True)
 
-    # Display forecast data
+    # --- Filter forecast table by selected range ---
+    forecast['ds'] = pd.to_datetime(forecast['ds'])
+    if custom_range:
+        mask = (forecast['ds'] >= pd.to_datetime(range_start)) & (forecast['ds'] <= pd.to_datetime(range_end))
+    else:
+        mask = (forecast['ds'] >= pd.to_datetime(start_date)) & (forecast['ds'] < pd.to_datetime(start_date) + pd.Timedelta(days=horizon))
+    filtered_forecast = forecast.loc[mask, ['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
+
     st.subheader("📋 Forecast Data Table")
-    st.dataframe(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(30))
+    st.dataframe(filtered_forecast)
+
+    # --- Export options ---
+    st.markdown("**Export forecast data:**")
+    csv = filtered_forecast.to_csv(index=False).encode('utf-8')
+    st.download_button("⬇️ Download CSV", data=csv, file_name="forecast_filtered.csv", mime="text/csv")
+    excel_bytes = BytesIO()
+    filtered_forecast.to_excel(excel_bytes, index=False)
+    st.download_button("⬇️ Download Excel", data=excel_bytes.getvalue(), file_name="forecast_filtered.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     return forecast
 

@@ -42,3 +42,12 @@ def render(df):
             title='🧊 Quantity vs Event Type'
         )
         st.plotly_chart(fig_event, use_container_width=True)
+    # Quantity by Region and Event (if both columns exist)
+    if {'region', 'event', 'quantity'}.issubset(df.columns):
+        fig_region_event = px.bar(
+            df.groupby(['region', 'event'])['quantity'].sum().reset_index(),
+            x='region', y='quantity', color='event',
+            barmode='group',
+            title='🌐 Quantity by Region and Event'
+        )
+        st.plotly_chart(fig_region_event, use_container_width=True)

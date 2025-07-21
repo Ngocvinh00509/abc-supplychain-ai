@@ -43,8 +43,17 @@ def render(df_raw: pd.DataFrame):
 
     st.markdown("---")
 
+
     # Step 4: Feature Engineering
     st.subheader("🧠 Step 4: Feature Engineering")
+    # Thêm cột tháng từ cột ngày nếu có
+    if 'date' in df_cleaned.columns:
+
+        df_cleaned['month'] = pd.to_datetime(df_cleaned['date'], errors='coerce').dt.month
+        
+        st.write("**Month column extracted from 'date':**")
+        st.dataframe(df_cleaned[['date', 'month']].head())
+
     if 'quantity' in df_cleaned.columns and 'stock' in df_cleaned.columns:
         df_cleaned['sell_through_rate'] = df_cleaned['quantity'] / (df_cleaned['stock'] + 1)
         st.write("**Sell-through Rate:** Quantity / (Stock + 1)")

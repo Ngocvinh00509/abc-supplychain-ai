@@ -17,7 +17,6 @@ def train_prophet_model(df: pd.DataFrame) -> Prophet:
     # ✅ Initialize and fit the Prophet model
     model = Prophet()
     model.fit(data)
-
     return model
 
 

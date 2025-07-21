@@ -11,12 +11,19 @@ uploaded_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
 sku_filter = st.sidebar.text_input("🔎 Filter by SKU (optional)")
 threshold = st.sidebar.slider("🚨 Alert Threshold (Quantity)", 50, 1000, 300)
 
-if not uploaded_file:
+
+import os
+default_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'abc_sales_orders_2024.csv')
+if uploaded_file:
+    df_raw = pd.read_csv(uploaded_file)
+    st.success("✅ Data loaded from uploaded file!")
+elif os.path.exists(default_path):
+    df_raw = pd.read_csv(default_path)
+    st.info(f"ℹ Using default data file: {default_path}")
+else:
     st.warning("📂 Please upload a CSV file to proceed.")
     st.stop()
 
-# Load & tiền xử lý dữ liệu
-df_raw = pd.read_csv(uploaded_file)
 df = clean_data(df_raw)
 df = filter_by_sku(df, sku_filter)
 st.success("✅ Data loaded and preprocessed successfully!")
